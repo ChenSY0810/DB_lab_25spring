@@ -22,6 +22,9 @@
 import { ref } from 'vue'
 
 import QueryPanel from './components/QueryPanel.vue'
+import UpdatePanel from './components/UpdatePanel.vue'
+import InsertPanel from './components/InsertPanel.vue'
+import RangePanel from './components/RangePanel.vue'
 
 const action = ref(null)
 
