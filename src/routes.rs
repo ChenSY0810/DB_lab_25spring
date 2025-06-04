@@ -1,26 +1,34 @@
-use warp::Filter;
+use warp::{filters::path::FullPath, Filter, Rejection};
+use sqlx::MySqlPool;
 use crate::handlers;
+use std::convert::Infallible;
 
-pub fn api() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    let query = warp::path!("api" / "query")
-        .and(warp::get())
-        .and(warp::query::<handlers::QueryParams>())
-        .and_then(handlers::handle_query);
+pub fn api_routes(pool: MySqlPool) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+  
+  let db = warp::any().map(move || pool.clone());
 
-    let update = warp::path!("api" / "update")
-        .and(warp::post())
-        .and(warp::body::json())
-        .and_then(handlers::handle_update);
+  let teacher_insert = warp::path!("api" / "teachers")
+    .and(warp::post())
+    // .and(warp::header::<String>("Authorization"))
+    .and(warp::body::json())
+    .and(db)
+    .and_then(handlers::insert_teacher_handler);
 
-    let insert = warp::path!("api" / "insert")
-        .and(warp::post())
-        .and(warp::body::json())
-        .and_then(handlers::handle_insert);
+    // debug
+    // .recover(|err: Rejection| async move {
+    //     if let Some(e) = err.find::<warp::filters::body::BodyDeserializeError>() {
+    //         eprintln!("Body deserialize error: {:?}", e);
+    //     }
+    //     Ok::<_, Rejection>(warp::reply::with_status(
+    //         "Bad Request",
+    //         warp::http::StatusCode::BAD_REQUEST,
+    //     ))
+    // });
 
-    let range = warp::path!("api" / "range")
-        .and(warp::get())
-        .and(warp::query::<handlers::RangeParams>())
-        .and_then(handlers::handle_range);
 
-    query.or(update).or(insert).or(range)
+  let total_routes = teacher_insert;
+    // .with(warp::cors().allow_any_origin())
+    // .recover(handle_rejection)
+    
+  total_routes
 }

@@ -14,18 +14,19 @@ struct DatabaseError(sqlx::Error);
 impl Reject for AuthError {} 
 impl Reject for DatabaseError {}
 
-
-pub async fn insert_teacher_handler(
-  token: String,
+pub async fn insert_teacher_handler (
+  // token: String,
   new_teacher: NewTeacher,
   pool: MySqlPool,
 ) -> Result<impl warp::Reply, warp::Rejection> {
 
   // 检查
 
-  if !token.starts_with("Bearer ") || token.len() < 10 {
-    return Err(warp::reject::custom(AuthError))
-  }
+  println!("Attempting to insert");
+
+  // if !token.starts_with("Bearer ") || token.len() < 10 {
+  //   return Err(warp::reject::custom(AuthError))
+  // }
 
   // 计数
   let cnt = sqlx::query!(
@@ -38,7 +39,9 @@ pub async fn insert_teacher_handler(
     warp::reject::custom(DatabaseError(e))
   })?;
 
-  let cnt = (cnt.count + 1).to_string(); // 目前教师数量，因为不能使用自增，并且char(5)太短无法应用UUID，我们只能出此下策。
+  let cnt = format!("{:X}",cnt.count + 1); // 目前教师数量，因为不能使用自增，并且char(5)太短无法应用UUID，我们只能出此下策。
+
+  println!("cur id {}", cnt);
 
   // 插入
   let result = sqlx::query!(

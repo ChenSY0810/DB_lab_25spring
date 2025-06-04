@@ -78,9 +78,9 @@ create table ClassTeach
 (
    teacher_id           char(5) not null,
    course_id            varchar(256) not null,
-   course_year          int,
-   course_semester      int,
-   resp_hour            int,
+   course_year          int not null,
+   course_semester      int not null,
+   resp_hour            int not null,
    primary key (teacher_id, course_id)
 );
 
@@ -90,9 +90,9 @@ create table ClassTeach
 create table Course
 (
    course_id            varchar(256) not null,
-   course_name          varchar(256),
-   course_property      int,
-   hours                int,
+   course_name          varchar(256) not null,
+   course_property      int not null,
+   hours                int not null,
    primary key (course_id)
 );
 
@@ -103,8 +103,8 @@ create table PaperPub
 (
    teacher_id           char(5) not null,
    paper_id             int not null,
-   ranking              int,
-   comm_auth            boolean,
+   ranking              int not null,
+   comm_auth            boolean not null,
    primary key (teacher_id, paper_id)
 );
 
@@ -114,11 +114,11 @@ create table PaperPub
 create table Project
 (
    project_id           varchar(256) not null,
-   project_name         varchar(256),
-   project_src          varchar(256),
-   project_type         int,
-   total_fund           float,
-   start_year           int,
+   project_name         varchar(256) not null,
+   project_src          varchar(256) not null,
+   project_type         int not null,
+   total_fund           float not null,
+   start_year           int not null,
    end_year             int,
    primary key (project_id)
 );
@@ -130,8 +130,8 @@ create table ProjectResp
 (
    teacher_id           char(5) not null,
    project_id           varchar(256) not null,
-   ranking              int,
-   fund                 float,
+   ranking              int not null,
+   fund                 float not null,
    primary key (teacher_id, project_id)
 );
 
@@ -140,12 +140,12 @@ create table ProjectResp
 /*==============================================================*/
 create table Publication
 (
-   paper_id             int not null,
-   paper_name           varchar(256),
-   paper_src            varchar(256),
-   pub_year             date,
-   paper_type           int,
-   paper_level          int,
+   paper_id             int AUTO_INCREMENT not null,
+   paper_name           varchar(256) not null,
+   paper_src            varchar(256) not null,
+   pub_year             date not null,
+   paper_type           int not null,
+   paper_level          int not null,
    primary key (paper_id)
 );
 
@@ -155,9 +155,9 @@ create table Publication
 create table Teacher
 (
    teacher_id           char(5) not null,
-   teacher_name         varchar(256),
-   teacher_sex          int,
-   teacher_title        int,
+   teacher_name         varchar(256) not null,
+   teacher_sex          int not null,
+   teacher_title        int not null,
    primary key (teacher_id)
 );
 
@@ -167,9 +167,9 @@ create table Teacher
 create table User
 (
    user_id              int not null,
-   user_name            varchar(256),
-   user_password        varchar(256),
-   user_privilege       int,
+   user_name            varchar(256) not null,
+   user_password        varchar(256) not null,
+   user_privilege       int not null,
    teacher_id           char(5),
    primary key (user_id)
 );

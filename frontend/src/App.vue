@@ -1,49 +1,58 @@
-<template>
-  <div class="container">
-    <h1>数据操作面板</h1>
+<!-- <template>
+  <div class="min-h-screen flex flex-col">
+    <header class="bg-blue-600 text-white p-4 text-xl font-bold">科研管理系统</header>
 
-    <div class="buttons">
-      <button @click="setAction('query')">查询</button>
-      <button @click="setAction('update')">更改</button>
-      <button @click="setAction('insert')">插入</button>
-      <button @click="setAction('range')">范围查询</button>
-    </div>
+    <main class="flex flex-1">
+      <aside class="w-60 bg-gray-100 border-r p-4 space-y-2">
+        <button
+          v-for="tab in tabs"
+          :key="tab.name"
+          @click="currentTab = tab.name"
+          class="block w-full text-left px-4 py-2 rounded hover:bg-blue-200"
+          :class="{ 'bg-blue-500 text-white': currentTab === tab.name }"
+        >
+          {{ tab.label }}
+        </button>
+      </aside>
 
-    <div class="action-panel">
-      <QueryPanel v-if="action === 'query'" />
-      <UpdatePanel v-if="action === 'update'" />
-      <InsertPanel v-if="action === 'insert'" />
-      <RangePanel v-if="action === 'range'" />
-    </div>
+      <section class="flex-1 p-6 overflow-auto">
+        <component :is="currentTabComponent" />
+      </section>
+    </main>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
-import QueryPanel from './components/QueryPanel.vue'
-import UpdatePanel from './components/UpdatePanel.vue'
-import InsertPanel from './components/InsertPanel.vue'
-import RangePanel from './components/RangePanel.vue'
+// 导入所有模块组件
+import TeacherSection from './components/TeacherSection.vue'
+// import UserSection from '@/components/UserSection.vue'
+// 可继续导入 ProjectSection 等...
 
-const action = ref(null)
+const tabs = [
+  { name: 'TeacherSection', label: '教师管理' },
+  // { name: 'UserSection', label: '用户管理' },
+  // 后续可添加更多模块
+]
 
-function setAction(act) {
-  action.value = act
-}
+const currentTab = ref('TeacherSection')
+
+const currentTabComponent = computed(() => {
+  return {
+    TeacherSection,
+    UserSection
+  }[currentTab.value]
+})
+</script> -->
+
+
+<template>
+  <div>
+    <router-view />
+  </div>
+</template>
+
+<script setup>
+// 无需 JS
 </script>
-
-<style scoped>
-.container {
-  max-width: 600px;
-  margin: 0 auto;
-}
-.buttons button {
-  margin: 5px;
-}
-.action-panel {
-  margin-top: 20px;
-  padding: 10px;
-  border: 1px solid #ccc;
-}
-</style>
