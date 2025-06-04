@@ -1,55 +1,67 @@
-use serde::{Deserialize, Serialize};
-use warp::Reply;
+use warp::http::StatusCode;
+use sqlx::MySqlPool;
+use uuid::Uuid;
 
-#[derive(Debug, Deserialize)]
-pub struct QueryParams {
-    pub field: String,
-    pub value: String,
-}
+use crate::models::NewTeacher;
 
-#[derive(Debug, Deserialize)]
-pub struct UpdateRequest {
-    pub id: String,
-    pub field: String,
-    pub value: String,
-}
+use warp::{reject::Reject, Reply};
 
-#[derive(Debug, Deserialize)]
-pub struct InsertRequest {
-    pub name: String,
-    pub status: String,
-}
+#[derive(Debug)]
+pub struct AuthError;
+#[derive(Debug)]
+struct DatabaseError(sqlx::Error);
 
-#[derive(Debug, Deserialize)]
-pub struct RangeParams {
-    pub field: String,
-    pub start: String,
-    pub end: String,
-}
+impl Reject for AuthError {} 
+impl Reject for DatabaseError {}
 
-// 示例：查询接口
-pub async fn handle_query(params: QueryParams) -> Result<impl warp::Reply, warp::Rejection> {
-    let msg = format!("查询字段 {} 的值为 {}", params.field, params.value);
-    Ok(warp::reply::json(&msg))
-}
 
-// 示例：更改接口
-pub async fn handle_update(req: UpdateRequest) -> Result<impl warp::Reply, warp::Rejection> {
-    let msg = format!("将 ID {} 的 {} 更改为 {}", req.id, req.field, req.value);
-    Ok(warp::reply::json(&msg))
-}
+pub async fn insert_teacher_handler(
+  token: String,
+  new_teacher: NewTeacher,
+  pool: MySqlPool,
+) -> Result<impl warp::Reply, warp::Rejection> {
 
-// 示例：插入接口
-pub async fn handle_insert(req: InsertRequest) -> Result<impl warp::Reply, warp::Rejection> {
-    let msg = format!("插入新数据：名字={}, 状态={}", req.name, req.status);
-    Ok(warp::reply::json(&msg))
-}
+  // 检查
 
-// 示例：范围查询接口
-pub async fn handle_range(params: RangeParams) -> Result<impl warp::Reply, warp::Rejection> {
-    let msg = format!(
-        "查询字段 {} 从 {} 到 {} 的范围",
-        params.field, params.start, params.end
-    );
-    Ok(warp::reply::json(&msg))
+  if !token.starts_with("Bearer ") || token.len() < 10 {
+    return Err(warp::reject::custom(AuthError))
+  }
+
+  // 计数
+  let cnt = sqlx::query!(
+    "SELECT COUNT(*) as count FROM Teacher;"
+  )
+  .fetch_one(&pool)
+  .await
+  .map_err(|e| {
+    eprintln!("Database error: {}", e);
+    warp::reject::custom(DatabaseError(e))
+  })?;
+
+  let cnt = (cnt.count + 1).to_string(); // 目前教师数量，因为不能使用自增，并且char(5)太短无法应用UUID，我们只能出此下策。
+
+  // 插入
+  let result = sqlx::query!(
+    "INSERT INTO Teacher (teacher_id, teacher_name, teacher_sex, teacher_title) VALUES (?, ?, ?, ?)",
+    cnt,
+    new_teacher.teacher_name,
+    new_teacher.teacher_sex,
+    new_teacher.teacher_title,
+  )
+  .execute(&pool)
+  .await
+  .map_err(|e| {
+    eprintln!("Database error: {}", e);
+    warp::reject::custom(DatabaseError(e))
+  });
+
+  // 返回
+  match result {
+    Ok(_) => Ok(warp::reply::with_status("Inserted", StatusCode::CREATED)),
+    Err(e) => {
+      eprintln!("Insert error: {:?}", e);
+      Ok(warp::reply::with_status("Insert failed", StatusCode::INTERNAL_SERVER_ERROR))
+    }
+  }
+
 }
