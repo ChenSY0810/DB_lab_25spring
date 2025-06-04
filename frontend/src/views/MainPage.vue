@@ -1,6 +1,7 @@
 <template>
   <div class="w-full bg-gray-50 p-8">
-    <!-- 标签栏 -->
+   
+
     <div class="flex gap-4 mb-6">
       <button
         v-for="tab in tabs"
@@ -15,7 +16,6 @@
       </button>
     </div>
 
-    <!-- 内容区域：使用组件显示对应内容 -->
     <transition name="fade" mode="out-in">
       <component
         :is="getComponent(activeTab)"
@@ -32,17 +32,18 @@ import TeacherSection from '@/components/TeacherSection.vue'
 // import ProjectSection from '@/components/ProjectSection.vue'
 // import PaperSection from '@/components/PaperSection.vue'
 // import CourseSection from '@/components/CourseSection.vue'
-
+// import RangeQuerySection from '@/components/RangeQuerySection.vue'
 import { ref } from 'vue'
 
-const tabs = ['项目', '论文', '课程']
+const tabs = ['项目', '论文', '课程', '范围查询']
 const activeTab = ref('项目')
 
 const getComponent = (tab) => {
   switch (tab) {
-    case '项目': return ProjectSection
+    case '项目': return TeacherSection
     case '论文': return PaperSection
     case '课程': return CourseSection
+    case '范围查询': return RangeQuerySection
     default: return null
   }
 }

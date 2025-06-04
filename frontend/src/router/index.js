@@ -1,14 +1,24 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import AppLayout from '@/AppLayout.vue'
 import LoginPage from '@/views/LoginPage.vue'
 import MainPage from '@/views/MainPage.vue'
 import AdminPage from '@/views/AdminPage.vue'
+import ProfilePage from '@/views/ProfilePage.vue'
 
 const routes = [
-  { path: '/', redirect: '/login' },
-  { path: '/login', component: LoginPage },
-  { path: '/main', component: MainPage },
-  { path: '/admin', component: AdminPage},
+  {
+    path: '/',
+    component: AppLayout,
+    children: [
+      { path: '', component: MainPage },
+      { path: 'user-profile', component: ProfilePage },
+      { path: 'main', component: MainPage },
+      { path: 'admin', component: AdminPage},
+    ]
+  },
+  { path: '/login', component: LoginPage }
 ]
+
 
 const router = createRouter({
   history: createWebHistory(),
