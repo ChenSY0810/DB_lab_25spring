@@ -23,17 +23,20 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const username = localStorage.getItem('username') || '未登录'
+const pri = Number(localStorage.getItem('privilege'))
 
 function goBack() {
-  if ( username === 'admin' ) {
+  if ( pri === 2 ) {
     router.push('/admin')
-  } else {
+  } else if (pri === 1) {
     router.push('/main')
+  } else {
+    router.push('/login')
   }
 }
 
 function logout() {
-  localStorage.removeItem('token')
+  localStorage.removeItem('privilege')
   localStorage.removeItem('username')
   router.push('/login')
 }

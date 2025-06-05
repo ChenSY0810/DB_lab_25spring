@@ -5,7 +5,7 @@
       
       <div class="mb-4">
         <p><strong>用户名：</strong>{{ username }}</p>
-        <p><strong>用户ID：</strong>{{ userId }}</p>
+        <p><strong>用户ID：</strong>{{ userid.user_id }}</p>
       </div>
 
       <h3 class="text-lg font-semibold mb-2">修改密码</h3>
@@ -28,15 +28,43 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
-const username = localStorage.getItem('username') || '未登录'
-const userId = localStorage.getItem('user_id') || '未知'
+const username = localStorage.getItem('username')
+
+const userid = ref({
+  user_id: 1,
+})
 
 const newPassword = ref('')
+
+async function loadUser() {
+  try {
+    const res = await fetch(`/api/users?username=${encodeURIComponent(username)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    
+    if (!res.ok) {
+      throw new Error('获取用户信息失败')
+    }
+    
+    userid.value = await res.json()
+  } catch (error) {
+    console.error('加载用户出错:', error)
+  }
+}
+
 
 function changePassword() {
   // 实际应调用后端接口
   alert(`密码已修改为：${newPassword.value}`)
 }
+
+onMounted(() => {
+  loadUser()
+})
+
 </script>

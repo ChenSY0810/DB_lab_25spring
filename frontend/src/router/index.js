@@ -10,7 +10,6 @@ const routes = [
     path: '/',
     component: AppLayout,
     children: [
-      { path: '', component: MainPage },
       { path: 'user-profile', component: ProfilePage },
       { path: 'main', component: MainPage },
       { path: 'admin', component: AdminPage},
@@ -27,12 +26,16 @@ const router = createRouter({
 
 // 路由守卫
 router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('token')
-  if (to.path != '/login' && !token) {
+  const pri = Number(localStorage.getItem('privilege'))
+  if (to.path != '/login' && !pri) {
     next('/login')
-  } else if ( to.path == '/admin' &&  token != 'hardcoded-admin-token') {
-    next('/login')
+  } else if ( to.path == '/admin' &&  pri != 2) {
     alert("No permission.")
+    if (pri === 1) {
+      next('/main')
+    } else {
+      next('/login')
+    }
   } else {
     next()
   }

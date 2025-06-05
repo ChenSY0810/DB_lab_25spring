@@ -59,28 +59,73 @@ const toggleRegister = () => {
   password.value = ''
 }
 
-const login = async () => { // TODO: 接入后端
-  if (username.value === 'admin' && password.value === 'admin') {
-    localStorage.setItem('token', 'hardcoded-admin-token')
-    localStorage.setItem('username', 'admin')
-    router.push('/admin')
-  } else if (username.value === 'user' && password.value === 'user') {
-    localStorage.setItem('token', 'hardcoded-user-token')
-    localStorage.setItem('username', 'user')
-    router.push('/main')
-  } else {
-    alert('用户名或密码错误')
-  }
-}
-
-const register = async () => {
-  if (!username.value || !password.value) { // TODO: 向后端检查是否重复名字
+const login = async () => {
+  if (!username.value || !password.value) {
     alert('请输入用户名和密码')
     return
   }
 
-  console.log(`注册新用户：${username.value}, 密码：${password.value}`)
-  alert(`用户 ${username.value} 注册成功，请登录`)
-  isRegistering.value = false
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username: username.value,
+        password: password.value
+      })
+    })
+
+    if (!res.ok) {
+      alert('用户名或密码错误')
+      return
+    }
+
+    const data = await res.json()
+    localStorage.setItem('privilege', data.privilege)
+    localStorage.setItem('username', username.value)
+
+    // 根据权限跳转
+    if (data.privilege === 2) {
+      router.push('/admin')
+    } else {
+      router.push('/main')
+    }
+  } catch (error) {
+    console.error('登录失败:', error)
+    alert('登录失败，请稍后再试')
+  }
+}
+
+const register = async () => {
+  if (!username.value || !password.value) {
+    alert('请输入用户名和密码')
+    return
+  }
+
+  try {
+    const res = await fetch('/api/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username: username.value,
+        password: password.value
+      })
+    })
+
+    if (!res.ok) {
+      alert('注册失败，请更换用户名')
+      return
+    }
+
+    alert(`用户 ${username.value} 注册成功，请登录`)
+    isRegistering.value = false
+  } catch (error) {
+    console.error('注册失败:', error)
+    alert('注册失败，请稍后重试')
+  }
 }
 </script>

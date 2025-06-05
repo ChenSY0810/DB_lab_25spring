@@ -166,10 +166,10 @@ create table Teacher
 /*==============================================================*/
 create table User
 (
-   user_id              int not null,
-   user_name            varchar(256) not null,
+   user_id              int AUTO_INCREMENT not null,
+   user_name            varchar(256) UNIQUE not null,
    user_password        varchar(256) not null,
-   user_privilege       int not null,
+   user_privilege       int not null DEFAULT 1,
    teacher_id           char(5),
    primary key (user_id)
 );
@@ -195,3 +195,5 @@ alter table ProjectResp add constraint FK_PROJECTR_REFERENCE_PROJECT foreign key
 alter table User add constraint FK_USER_REFERENCE_TEACHER foreign key (teacher_id)
       references Teacher (teacher_id) on delete restrict on update restrict;
 
+INSERT INTO User (user_name, user_password, user_privilege) VALUES ('admin', '$2b$12$GrGLVGccuHzAMyjcWfywm.08ZsQ8MWuYN/ldlPSbTXscDP.5w58vC', 2);
+INSERT INTO User (user_name, user_password) VALUES ('user', '$2b$12$FcJl2hfmBMtljGYT1qJLheHG2ZkHpmNyFupRguVqYnyUw5flmdrxK');
