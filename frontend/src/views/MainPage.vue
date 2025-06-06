@@ -1,15 +1,14 @@
 <template>
   <div class="w-full bg-gray-50 p-8">
    
-
-    <div class="flex gap-4 mb-6">
+    <div class="flex gap-4 mb-6 justify-center">
       <button
         v-for="tab in tabs"
         :key="tab"
         @click="activeTab = tab"
         :class="[
           'px-6 py-2 rounded-full font-semibold shadow transition',
-          activeTab === tab ? 'bg-blue-600 text-red-300' : 'bg-white text-gray-700 hover:bg-blue-100'
+          activeTab === tab ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-blue-100'
         ]"
       >
         {{ tab }}
@@ -40,7 +39,7 @@ const activeTab = ref('项目')
 
 const getComponent = (tab) => {
   switch (tab) {
-    case '项目': return TeacherSection
+    case '项目': return ProjectSection
     case '论文': return PaperSection
     case '课程': return CourseSection
     case '范围查询': return RangeQuerySection
@@ -49,10 +48,10 @@ const getComponent = (tab) => {
 }
 
 const tabColorMap = {
-  '教师': 'bg-green-50',
   '项目': 'bg-yellow-50',
   '论文': 'bg-red-50',
   '课程': 'bg-purple-50',
+  '范围查询': 'bg-magenta-50'
 }
 </script>
 

@@ -54,5 +54,4 @@ const currentTabComponent = computed(() => {
 </template>
 
 <script setup>
-// 无需 JS
 </script>

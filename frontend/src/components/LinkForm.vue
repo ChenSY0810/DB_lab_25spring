@@ -1,6 +1,6 @@
 <template>
   <div class="flex justify-center">
-    <form @submit.prevent="submitForm" class="bg-gray-100 p-4 rounded border w-full max-w-md">
+    <form @submit.prevent="submitForm" class="bg-gray-100 p-4 rounded border w-full max-w-md ">
       <h3 class="text-lg font-semibold mb-4">新增教师</h3>
 
       <div class="mb-3">

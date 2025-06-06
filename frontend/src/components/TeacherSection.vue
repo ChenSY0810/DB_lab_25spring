@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h2 class="text-xl font-bold mb-4">新增教师</h2>
+    <h2 class="text-xl font-bold mb-4">教师</h2>
     <TeacherForm @teacher-added="loadTeachers" />
 
     <div class="mt-6">
@@ -65,7 +65,7 @@ function mapSex(code) {
 async function loadTeachers() {
   const res = await fetch('/api/teachers', {
     headers: {
-      Authorization: `Bearer ${localStorage.getItem('token')}`
+      method: 'GET',
     }
   })
   teachers.value = await res.json()

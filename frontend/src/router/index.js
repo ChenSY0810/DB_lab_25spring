@@ -12,7 +12,7 @@ const routes = [
     children: [
       { path: 'user-profile', component: ProfilePage },
       { path: 'main', component: MainPage },
-      { path: 'admin', component: AdminPage},
+      { path: 'admin', component: AdminPage}
     ]
   },
   { path: '/login', component: LoginPage }

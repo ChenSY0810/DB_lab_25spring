@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="w-full mx-auto bg-gray-50">
     <div class="w-full flex justify-between items-center px-6 py-3 bg-white shadow-md fixed top-0 left-0 right-0 z-50">
       <button @click="goBack" class="text-xl text-blue-700">
         <bold>教师信息系统</bold>

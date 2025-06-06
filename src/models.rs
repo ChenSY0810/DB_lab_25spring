@@ -11,7 +11,7 @@ pub struct Privilege {
   pub privilege: i32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 pub struct Password {
   pub password: String,
 }

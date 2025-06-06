@@ -58,9 +58,26 @@ async function loadUser() {
 }
 
 
-function changePassword() {
-  // 实际应调用后端接口
-  alert(`密码已修改为：${newPassword.value}`)
+async function changePassword() {
+  try {
+
+    const res = await fetch(`/api/users?username=${encodeURIComponent(username)}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        password: newPassword.value,
+      })
+    })
+
+    if (!res.ok) {
+      throw new Error('更改密码失败')
+    }
+    alert('密码已修改')
+  } catch (error) {
+    console.error(error)
+  }
 }
 
 onMounted(() => {

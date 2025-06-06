@@ -22,7 +22,7 @@ async fn main() {
     .or(static_files)
     .with(warp::log::custom(|info| {
         println!(
-            "{} {} {} {:?}",
+            "{} {} {} \n{:?}",
             info.method(),
             info.path(),
             info.status(),

@@ -1,7 +1,7 @@
 <template>
   <div class="w-full bg-gray-50 p-8">
     
-    <div class="flex gap-4 mb-6">
+    <div class="flex gap-4 mb-6 justify-center">
       <button
         v-for="tab in tabs"
         :key="tab"
@@ -28,18 +28,20 @@
 
 <script setup>
 import TeacherSection from '@/components/TeacherSection.vue'
+import LinkSection from '@/components/LinkSection.vue'
 // import ProjectSection from '@/components/ProjectSection.vue'
 // import PaperSection from '@/components/PaperSection.vue'
 // import CourseSection from '@/components/CourseSection.vue'
 
 import { ref } from 'vue'
 
-const tabs = ['教师', '项目', '论文', '课程', '范围查询']
+const tabs = ['教师', '绑定', '项目', '论文', '课程', '范围查询']
 const activeTab = ref('教师')
 
 const getComponent = (tab) => {
   switch (tab) {
     case '教师': return TeacherSection
+    case '绑定': return LinkSection
     case '项目': return ProjectSection
     case '论文': return PaperSection
     case '课程': return CourseSection
@@ -50,9 +52,11 @@ const getComponent = (tab) => {
 
 const tabColorMap = {
   '教师': 'bg-green-50',
+  '绑定': 'bg-sky-50',
   '项目': 'bg-yellow-50',
   '论文': 'bg-red-50',
   '课程': 'bg-purple-50',
+  '范围查询': 'bg-magenta-50'
 }
 </script>
 
