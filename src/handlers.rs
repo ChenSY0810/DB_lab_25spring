@@ -15,6 +15,11 @@ struct DatabaseError(sqlx::Error);
 impl Reject for HashError {}
 impl Reject for DatabaseError {}
 
+fn formalize_teacher_id (
+  old_id: &str,
+) -> String {
+  format!("{:X}", i32::from_str_radix(old_id, 16).unwrap())
+}
 
 pub async fn insert_teacher_handler (
   new_teacher: models::NewTeacher,
@@ -23,7 +28,10 @@ pub async fn insert_teacher_handler (
 
   // 计数
   let cnt = sqlx::query!(
-    "SELECT COUNT(*) as count FROM Teacher;"
+    r#"
+    SELECT COUNT(*) as count 
+    FROM Teacher
+    "#
   )
   .fetch_one(&pool)
   .await
@@ -38,9 +46,11 @@ pub async fn insert_teacher_handler (
 
   // 插入
   let result = sqlx::query!(
-    "INSERT INTO Teacher 
+    r#"
+    INSERT INTO Teacher 
     (teacher_id, teacher_name, teacher_sex, teacher_title) 
-    VALUES (?, ?, ?, ?)",
+    VALUES (?, ?, ?, ?)
+    "#,
     cnt,
     new_teacher.teacher_name,
     new_teacher.teacher_sex,
@@ -63,6 +73,7 @@ pub async fn insert_teacher_handler (
   }
 
 }
+
 pub async fn list_teacher_handler (
   pool: MySqlPool,
 ) -> Result<impl warp::Reply, warp::Rejection>  {
@@ -72,6 +83,27 @@ pub async fn list_teacher_handler (
     r#"
     SELECT teacher_id, teacher_name, teacher_sex, teacher_title
     FROM Teacher
+    "#
+  )
+  .fetch_all(&pool)
+  .await
+  .map_err(|e| {
+    eprintln!("DB error: {:?}", e);
+    warp::reject::custom(DatabaseError(e))
+  })?;
+
+  Ok(warp::reply::json(&rows))
+}
+
+pub async fn list_user_handler (
+  pool: MySqlPool,
+) -> Result<impl warp::Reply, warp::Rejection> {
+
+  let rows = sqlx::query_as!(
+    models::UserName,
+    r#"
+    SELECT user_name as username
+    FROM User
     "#
   )
   .fetch_all(&pool)
@@ -125,7 +157,7 @@ pub async fn login_handler (
     r#"
     SELECT user_password as password 
     FROM User
-    WHERE user_name = ?;
+    WHERE user_name = ?
     "#, 
     login_data.username,
   )
@@ -157,7 +189,7 @@ pub async fn login_handler (
     r#"
     SELECT user_privilege as privilege 
     FROM User
-    WHERE user_name = ? 
+    WHERE user_name = ?
     "#, 
     login_data.username
   )
@@ -181,7 +213,7 @@ pub async fn get_user_id_handler (
     r#"
     SELECT user_id 
     FROM User
-    WHERE user_name = ?;
+    WHERE user_name = ?
     "#, 
     username.username
   )
@@ -196,91 +228,188 @@ pub async fn get_user_id_handler (
 }
 
 pub async fn link_handler (
-
+  link: models::Link,
+  pool: MySqlPool,
 ) -> Result<impl warp::Reply, warp::Rejection> {
-  Ok(StatusCode::NOT_IMPLEMENTED)
+
+  // 正规化
+  let id = formalize_teacher_id(&link.teacher_id);
+
+  let result = sqlx::query!(
+    r#"
+    UPDATE User
+    SET teacher_id = ?
+    WHERE user_name = ?
+    "#, 
+    id, link.user_name,
+  )
+  .execute(&pool)
+  .await
+  .map_err(|e| {
+    eprintln!("DB error: {:?}", e);
+    warp::reject::custom(DatabaseError(e))
+  });
+
+  match result {
+    Ok(_) => Ok(warp::reply::with_status("Linked.", StatusCode::OK)),
+    Err(e) => {
+      eprintln!("Link error: {:?}", e);
+      Ok(warp::reply::with_status("Link failed", StatusCode::INTERNAL_SERVER_ERROR))
+    }
+  }
 }
 
 pub async fn project_create_handler (
-
+  project: models::InsertProject,
+  pool: MySqlPool,
 ) -> Result<impl warp::Reply, warp::Rejection> {
-  Ok(StatusCode::NOT_IMPLEMENTED)
+
+  // 检查是否存在重复教师
+  if project.teachers.len() != 0 {
+    use std::collections::HashSet;
+    let ids: Vec<_> = project.teachers.iter().map(|t| i32::from_str_radix(&t.id, 16).unwrap()).collect();
+    let unique_ids: HashSet<_> = ids.iter().copied().collect();
+    if ids.len() != unique_ids.len() {
+      return Ok(warp::reply::with_status("A teacher has multiple rank.", StatusCode::UNPROCESSABLE_ENTITY));
+    }
+  }
+
+  // 插入project
+  let id = Uuid::new_v4().to_string(); // 其实就是一个随机数
+  sqlx::query!(
+    r#"
+    INSERT INTO Project
+    (project_id, project_name, project_src, project_type, start_year, secret_level)
+    VALUE (?, ?, ?, ?, ?, ?)
+    "#,
+    id, project.name, project.source, project.project_type, project.start_year, project.secret_level
+  )
+  .execute(&pool)
+  .await
+  .map_err(|e| {
+    eprintln!("DB error: {:?}", e);
+    warp::reject::custom(DatabaseError(e))
+  })?;
+
+  if let Some(end) = project.end_year {
+    sqlx::query!(
+      r#"
+      UPDATE Project
+      SET end_year = ?
+      WHERE project_id = ?
+      "#,
+      end, id,
+    ).execute(&pool)
+    .await
+    .map_err(|e| {
+      eprintln!("DB error: {:?}", e);
+      warp::reject::custom(DatabaseError(e))
+    })?;
+  }
+
+  // 插入每一个教师
+  let mut idx = 1;
+  for teacher in project.teachers {
+    // 正规化
+    let teacher_id = formalize_teacher_id(&teacher.id);
+    if teacher.fund < 0.0 {
+      return Ok(warp::reply::with_status("Contribute Negative.", StatusCode::UNPROCESSABLE_ENTITY));
+    }
+    sqlx::query!(
+      r#"
+      INSERT INTO ProjectResp
+      (teacher_id, project_id, ranking, fund)
+      VALUE (?, ?, ?, ?)
+      "#,
+      teacher_id, id, idx, teacher.fund
+    )
+    .execute(&pool)
+    .await
+    .map_err(|e| {
+      eprintln!("DB error: {:?}", e);
+      warp::reject::custom(DatabaseError(e))
+    })?;
+
+    idx = idx + 1;
+  }
+
+  Ok(warp::reply::with_status("Success.", StatusCode::OK))
 }
 
 pub async fn project_read_handler (
-
+  pool: MySqlPool,
 ) -> Result<impl warp::Reply, warp::Rejection> {
   Ok(StatusCode::NOT_IMPLEMENTED)
 }
 
 pub async fn project_update_handler (
-
+  pool: MySqlPool,
 ) -> Result<impl warp::Reply, warp::Rejection> {
   Ok(StatusCode::NOT_IMPLEMENTED)
 }
 
 pub async fn project_delete_handler (
-
+  pool: MySqlPool,
 ) -> Result<impl warp::Reply, warp::Rejection> {
   Ok(StatusCode::NOT_IMPLEMENTED)
 }
 
 pub async fn paper_create_handler (
-
+  pool: MySqlPool,
 ) -> Result<impl warp::Reply, warp::Rejection> {
   Ok(StatusCode::NOT_IMPLEMENTED)
 }
 
 pub async fn paper_read_handler (
-
+  pool: MySqlPool,
 ) -> Result<impl warp::Reply, warp::Rejection> {
   Ok(StatusCode::NOT_IMPLEMENTED)
 }
 
 pub async fn paper_update_handler (
-
+  pool: MySqlPool,
 ) -> Result<impl warp::Reply, warp::Rejection> {
   Ok(StatusCode::NOT_IMPLEMENTED)
 }
 
 pub async fn paper_delete_handler (
-
+  pool: MySqlPool,
 ) -> Result<impl warp::Reply, warp::Rejection> {
   Ok(StatusCode::NOT_IMPLEMENTED)
 }
 
 pub async fn course_create_handler (
-
+  pool: MySqlPool,
 ) -> Result<impl warp::Reply, warp::Rejection> {
   Ok(StatusCode::NOT_IMPLEMENTED)
 }
 
 pub async fn course_read_handler (
-
+  pool: MySqlPool,
 ) -> Result<impl warp::Reply, warp::Rejection> {
   Ok(StatusCode::NOT_IMPLEMENTED)
 }
 
 pub async fn course_update_handler (
-
+  pool: MySqlPool,
 ) -> Result<impl warp::Reply, warp::Rejection> {
   Ok(StatusCode::NOT_IMPLEMENTED)
 }
 
 pub async fn course_delete_handler (
-
+  pool: MySqlPool,
 ) -> Result<impl warp::Reply, warp::Rejection> {
   Ok(StatusCode::NOT_IMPLEMENTED)
 }
 
 pub async fn range_query_handler (
-
+  pool: MySqlPool,
 ) -> Result<impl warp::Reply, warp::Rejection> {
   Ok(StatusCode::NOT_IMPLEMENTED)
 }
 
 pub async fn query_pdf_handler (
-
+  pool: MySqlPool,
 ) -> Result<impl warp::Reply, warp::Rejection> {
   Ok(StatusCode::NOT_IMPLEMENTED)
 }

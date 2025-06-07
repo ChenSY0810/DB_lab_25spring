@@ -3,8 +3,7 @@ mod handlers;
 mod db;
 mod models;
 
-use warp::Filter;
-use warp::http::StatusCode;
+use warp::{filters::body::json, Filter};
 
 
 #[tokio::main]
@@ -22,11 +21,10 @@ async fn main() {
     .or(static_files)
     .with(warp::log::custom(|info| {
         println!(
-            "{} {} {} \n{:?}",
+            "{} {} {}",
             info.method(),
             info.path(),
-            info.status(),
-            info.request_headers()
+            info.status()
         );
     }));
 

@@ -29,7 +29,7 @@
 <script setup>
 import TeacherSection from '@/components/TeacherSection.vue'
 import LinkSection from '@/components/LinkSection.vue'
-// import ProjectSection from '@/components/ProjectSection.vue'
+import ProjectSection from '@/components/ProjectSection.vue'
 // import PaperSection from '@/components/PaperSection.vue'
 // import CourseSection from '@/components/CourseSection.vue'
 

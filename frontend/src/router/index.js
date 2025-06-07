@@ -26,6 +26,12 @@ const router = createRouter({
 
 // 路由守卫
 router.beforeEach((to, from, next) => {
+
+  if (to.path === '/') { //主页重定向
+    next('/login')
+    return
+  }
+
   const pri = Number(localStorage.getItem('privilege'))
   if (to.path != '/login' && !pri) {
     next('/login')

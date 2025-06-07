@@ -92,7 +92,7 @@ create table Course
    course_id            varchar(256) not null,
    course_name          varchar(256) not null,
    course_property      int not null,
-   hours                int not null,
+   hours                int DEFAULT 0 not null,
    primary key (course_id)
 );
 
@@ -113,13 +113,14 @@ create table PaperPub
 /*==============================================================*/
 create table Project
 (
-   project_id           varchar(256) not null,
-   project_name         varchar(256) not null,
+   project_id           varchar(256) UNIQUE not null,
+   project_name         varchar(256) UNIQUE not null,
    project_src          varchar(256) not null,
    project_type         int not null,
-   total_fund           float not null,
+   total_fund           float DEFAULT 0.0 not null,
    start_year           int not null,
    end_year             int,
+   secret_level         int DEFAULT 1 not null,
    primary key (project_id)
 );
 
@@ -141,7 +142,7 @@ create table ProjectResp
 create table Publication
 (
    paper_id             int AUTO_INCREMENT not null,
-   paper_name           varchar(256) not null,
+   paper_name           varchar(256) UNIQUE not null,
    paper_src            varchar(256) not null,
    pub_year             date not null,
    paper_type           int not null,
@@ -178,23 +179,55 @@ alter table ClassTeach add constraint FK_CLASSTEA_REFERENCE_TEACHER foreign key 
       references Teacher (teacher_id) on delete restrict on update restrict;
 
 alter table ClassTeach add constraint FK_CLASSTEA_REFERENCE_COURSE foreign key (course_id)
-      references Course (course_id) on delete restrict on update restrict;
+      references Course (course_id) on delete CASCADE on update restrict;
 
 alter table PaperPub add constraint FK_PAPERPUB_REFERENCE_TEACHER foreign key (teacher_id)
       references Teacher (teacher_id) on delete restrict on update restrict;
 
 alter table PaperPub add constraint FK_PAPERPUB_REFERENCE_PUBLICAT foreign key (paper_id)
-      references Publication (paper_id) on delete restrict on update restrict;
+      references Publication (paper_id) on delete CASCADE on update restrict;
 
 alter table ProjectResp add constraint FK_PROJECTR_REFERENCE_TEACHER foreign key (teacher_id)
       references Teacher (teacher_id) on delete restrict on update restrict;
 
 alter table ProjectResp add constraint FK_PROJECTR_REFERENCE_PROJECT foreign key (project_id)
-      references Project (project_id) on delete restrict on update restrict;
+      references Project (project_id) on delete CASCADE on update restrict;
 
 alter table User add constraint FK_USER_REFERENCE_TEACHER foreign key (teacher_id)
       references Teacher (teacher_id) on delete restrict on update restrict;
 
-/* UPDATE User
+DELIMITER //
+CREATE PROCEDURE UpdateProjectTotalFund(IN pid VARCHAR(256))
+BEGIN
+    UPDATE Project
+    SET total_fund = (
+        SELECT COALESCE(SUM(fund), 0.0)
+        FROM ProjectResp
+        WHERE project_id = pid
+    )
+    WHERE project_id = pid;
+END //
+CREATE TRIGGER after_project_resp_insert
+AFTER INSERT ON ProjectResp
+FOR EACH ROW
+BEGIN
+   CALL UpdateProjectTotalFund(NEW.project_id);
+END //
+CREATE TRIGGER after_project_resp_update
+AFTER UPDATE ON ProjectResp
+FOR EACH ROW
+BEGIN
+   CALL UpdateProjectTotalFund(NEW.project_id);
+END //
+CREATE TRIGGER after_project_resp_delete
+AFTER DELETE ON ProjectResp
+FOR EACH ROW
+BEGIN
+   CALL UpdateProjectTotalFund(OLD.project_id);
+END //
+DELIMITER ;
+
+/* use DBLAB;
+UPDATE User
 SET user_privilege = 2
 WHERE user_name = 'admin'; */

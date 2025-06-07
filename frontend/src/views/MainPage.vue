@@ -1,6 +1,6 @@
 <template>
   <div class="w-full bg-gray-50 p-8">
-   
+    
     <div class="flex gap-4 mb-6 justify-center">
       <button
         v-for="tab in tabs"
@@ -27,8 +27,7 @@
 </template>
 
 <script setup>
-import TeacherSection from '@/components/TeacherSection.vue'
-// import ProjectSection from '@/components/ProjectSection.vue'
+import ProjectSection from '@/components/ProjectSection.vue'
 // import PaperSection from '@/components/PaperSection.vue'
 // import CourseSection from '@/components/CourseSection.vue'
 // import RangeQuerySection from '@/components/RangeQuerySection.vue'

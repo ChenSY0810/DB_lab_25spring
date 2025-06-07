@@ -15,7 +15,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="teacher in teachers" :key="teacher.id" class="border-t">
+          <tr v-for="teacher in teachers" :key="teacher.teacher_id" class="border-t">
             <td class="p-2">{{ teacher.teacher_id }}</td>
             <td class="p-2">{{ teacher.teacher_name }}</td>
             <td class="p-2">{{ mapTitle(teacher.teacher_title) }}</td>
@@ -64,11 +64,11 @@ function mapSex(code) {
 
 async function loadTeachers() {
   const res = await fetch('/api/teachers', {
-    headers: {
-      method: 'GET',
-    }
+    method: 'GET',
   })
-  teachers.value = await res.json()
+  if (res.ok) {
+    teachers.value = await res.json()
+  }
 }
 
 onMounted(() => {
