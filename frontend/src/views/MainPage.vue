@@ -28,8 +28,8 @@
 
 <script setup>
 import ProjectSection from '@/components/ProjectSection.vue'
-// import PaperSection from '@/components/PaperSection.vue'
-// import CourseSection from '@/components/CourseSection.vue'
+import PaperSection from '@/components/PaperSection.vue'
+import CourseSection from '@/components/CourseSection.vue'
 // import RangeQuerySection from '@/components/RangeQuerySection.vue'
 import { ref } from 'vue'
 

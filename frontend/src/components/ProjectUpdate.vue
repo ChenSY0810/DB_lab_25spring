@@ -8,10 +8,11 @@
     </div>
 
     <div v-if="loaded" class="grid grid-cols-2 gap-4">
-      <input v-model="project.start_year" placeholder="开始年份" type="number" class="p-2 border rounded" />
+      <input v-model="project.source" placeholder="源" required class="p-2 border rounded" />
+      <input v-model="project.start_year" placeholder="开始年份" required type="number" class="p-2 border rounded" />
       <input v-model="project.end_year" placeholder="结束年份（可空）" type="number" class="p-2 border rounded" />
 
-      <select v-model="project.project_type" class="p-2 border rounded">
+      <select v-model="project.project_type" required class="p-2 border rounded">
         <option disabled value="">请选择项目类型</option>
         <option :value="1">国家级项目</option>
         <option :value="2">省部级项目</option>
@@ -20,7 +21,7 @@
         <option :value="5">其它类型项目</option>
       </select>
 
-      <select v-model="project.secret_level" class="p-2 border rounded">
+      <select v-model="project.secret_level" required class="p-2 border rounded">
         <option disabled value="">请选择保密级别</option>
         <option :value="1">不保密</option>
         <option :value="2">保密</option>
@@ -37,8 +38,8 @@
       <div class="flex items-center gap-2">
         <select v-model="newTeacherId" class="p-2 border rounded w-1/2">
           <option disabled value="">选择新教师</option>
-          <option v-for="t in teacherOptions" :key="t.id" :value="t.id">
-            {{ t.name }}（{{ t.id }}）
+          <option v-for="t in teacherOptions" :key="t.teacher_id" :value="t.teacher_id">
+            {{ t.teacher_name }}（{{ t.teacher_id }}）
           </option>
         </select>
         <button @click="addTeacher" class="px-3 py-1 bg-green-500 text-white rounded">添加教师</button>
@@ -58,19 +59,26 @@ const project = ref({
   start_year: '',
   end_year: '',
   project_type: '',
-  secret_level: ''
+  secret_level: '',
+  name: '',
+  source: '',
 })
 const teachers = ref([])
 
 const teacherOptions = ref([])
 const newTeacherId = ref('')
 
+var oldname = ''
+
 const fetchProject = async () => {
+  const username = localStorage.getItem('username')
   loaded.value = false
-  const res = await fetch(`/api/projects?name=${encodeURIComponent(projectName.value)}`, {
+  const res = await fetch(`/api/projects/query?username=${encodeURIComponent(username)}`, {
+    method: 'POST',
     headers: {
-      method: 'GET'
-    }
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name: projectName.value })
   })
 
   if (!res.ok) {
@@ -80,12 +88,15 @@ const fetchProject = async () => {
 
   const data = await res.json()
   project.value = {
-    start_year: data.start_year,
-    end_year: data.end_year,
-    project_type: data.project_type,
-    secret_level: data.secret_level
+    start_year: data.project.start_year,
+    end_year: data.project.end_year,
+    project_type: data.project.project_type,
+    secret_level: data.project.secret_level,
+    name: data.project.project_name,
+    source: data.project.project_src,
   }
-  teachers.value = data.teachers // [{ id: 1001, fund: 20000 }, ...]
+  teachers.value = data.teachers.map(t => ({id: t.teacher_id, fund: t.fund})) // [{ id: 1001, fund: 20000 }, ...]
+  oldname = projectName.value
   loaded.value = true
 }
 
@@ -122,11 +133,18 @@ const submit = async () => {
     return
   }
 
-  const payload = {
-    project_name: projectName.value,
+  project.value.name = projectName.value;
+  const payload_1 = {
     ...project.value,
     teachers: teachers.value
   }
+
+  const payload = {
+    old_name: oldname,
+    new_project: payload_1
+  }
+  
+  console.log(JSON.stringify(payload, null, 2));
 
   const res = await fetch(`/api/projects/update?username=${encodeURIComponent(username)}`, {
     method: 'PUT',
@@ -138,10 +156,12 @@ const submit = async () => {
 
   if (res.ok) {
     alert('更改成功')
+    loaded.value = false
   } else {
     alert('更改失败')
   }
 }
+
 
 onMounted(loadTeacherOptions)
 </script>

@@ -81,7 +81,7 @@ create table ClassTeach
    course_year          int not null,
    course_semester      int not null,
    resp_hour            int not null,
-   primary key (teacher_id, course_id)
+   primary key (teacher_id, course_id, course_year, course_semester)
 );
 
 /*==============================================================*/
@@ -224,6 +224,35 @@ AFTER DELETE ON ProjectResp
 FOR EACH ROW
 BEGIN
    CALL UpdateProjectTotalFund(OLD.project_id);
+END //
+
+CREATE PROCEDURE UpdateCourseTotalHours(IN cid VARCHAR(256))
+BEGIN
+  UPDATE Course
+  SET hours = (
+    SELECT COALESCE(SUM(resp_hour), 0)
+    FROM ClassTeach
+    WHERE course_id = cid
+  )
+  WHERE course_id = cid;
+END //
+CREATE TRIGGER after_classteach_insert
+AFTER INSERT ON ClassTeach
+FOR EACH ROW
+BEGIN
+  CALL UpdateCourseTotalHours(NEW.course_id);
+END //
+CREATE TRIGGER after_classteach_update
+AFTER UPDATE ON ClassTeach
+FOR EACH ROW
+BEGIN
+  CALL UpdateCourseTotalHours(NEW.course_id);
+END //
+CREATE TRIGGER after_classteach_delete
+AFTER DELETE ON ClassTeach
+FOR EACH ROW
+BEGIN
+  CALL UpdateCourseTotalHours(OLD.course_id);
 END //
 DELIMITER ;
 

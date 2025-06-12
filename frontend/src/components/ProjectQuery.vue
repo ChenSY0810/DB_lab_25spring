@@ -12,15 +12,31 @@
       查询
     </button>
 
-    <div v-if="project" class="bg-white p-4 shadow rounded mt-4">
-      <div><strong>项目名称:</strong> {{ project.name }}</div>
-      <div><strong>来源:</strong> {{ project.source }}</div>
-      <div><strong>类型:</strong> {{ project.project_type }}</div>
-      <div><strong>保密级别:</strong> {{ project.secret_level }}</div>
-      <div><strong>参与老师:</strong>
-        <ul class="list-disc ml-6 mt-1">
-          <li v-for="teacher in project.teachers" :key="teacher.id">{{ teacher.name }}</li>
-        </ul>
+    <div v-if="pwt" class="bg-white p-4 shadow rounded mt-4">
+      <div><strong>项目名称:</strong> {{ pwt.project.project_name }}</div>
+      <div><strong>来源:</strong> {{ pwt.project.project_src }}</div>
+      <div><strong>类型:</strong> {{ mapplvl(pwt.project.project_type) }}</div>
+      <div><strong>保密级别:</strong> {{ mapsecret(pwt.project.secret_level) }}</div>
+      <div><strong>时间:</strong> {{ pwt.project.start_year }}{{ pwt.project.end_year ? '-' + pwt.project.end_year : ' 至今' }}</div>
+      <div ><strong>参与老师(按照排名):</strong>
+        <div class=" flex justify-center">
+          <table class="table-auto border mt-2 ml-6">
+            <thead>
+              <tr class="bg-gray-100">
+                <th class="px-4 py-2 border">ID</th>
+                <th class="px-4 py-2 border">姓名</th>
+                <th class="px-4 py-2 border">经费</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="teacher in pwt.teachers" :key="teacher.teacher_id">
+                <td class="px-4 py-2 border">{{ teacher.teacher_id }}</td>
+                <td class="px-4 py-2 border">{{ teacher.teacher_name }}</td>
+                <td class="px-4 py-2 border">{{ teacher.fund }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -29,8 +45,29 @@
 <script setup>
 import { ref } from 'vue'
 
+const plvlMap = {
+  1: '国家级项目',
+  2: '省部级项目',
+  3: '市厅级项目',
+  4: '企业合作项目',
+  5: '其他类型项目',
+};
+
+const secretMap = {
+  1: '不保密',
+  2: '保密'
+};
+
+function mapplvl(code) {
+  return plvlMap[code] || '未知';
+}
+
+function mapsecret(code) {
+  return secretMap[code] || '未知';
+}
+
 const projectName = ref('')
-const project = ref(null)
+const pwt = ref(null)
 
 const queryProject = async () => {
   const username = localStorage.getItem('username')
@@ -48,7 +85,7 @@ const queryProject = async () => {
   })
 
   if (res.ok) {
-    project.value = await res.json()
+    pwt.value = await res.json()
   } else {
     alert('查询失败，请检查权限或项目名')
   }

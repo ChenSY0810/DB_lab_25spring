@@ -37,13 +37,12 @@ const deleteProject = async () => {
   const confirmed = confirm(`确认要删除项目 "${projectName.value}" 吗？`)
   if (!confirmed) return
 
-  const res = await fetch(`/api/projects/delete?username=${encodeURIComponent(username)}`, {
+  const res = await fetch(`/api/projects?username=${encodeURIComponent(username)}`, {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`
     },
-    body: JSON.stringify({ project_name: projectName.value })
+    body: JSON.stringify({ name: projectName.value })
   })
 
   if (res.ok) {

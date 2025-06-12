@@ -2,6 +2,7 @@ mod routes;
 mod handlers;
 mod db;
 mod models;
+mod utils;
 
 use warp::{filters::body::json, Filter};
 
