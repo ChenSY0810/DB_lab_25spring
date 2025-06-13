@@ -133,6 +133,11 @@ const submit = async () => {
     return
   }
 
+  if (project.value.end_year != null && project.value.end_year < project.value.start_year) {
+    alert('开始年份应小于等于结束年份')
+    return
+  }
+
   project.value.name = projectName.value;
   const payload_1 = {
     ...project.value,

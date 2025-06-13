@@ -15,6 +15,7 @@
     <div v-if="pwt" class="bg-white p-4 shadow rounded mt-4">
       <div><strong>项目名称:</strong> {{ pwt.project.project_name }}</div>
       <div><strong>来源:</strong> {{ pwt.project.project_src }}</div>
+      <div><strong>总经费:</strong> {{ pwt.project.total_fund }}</div>
       <div><strong>类型:</strong> {{ mapplvl(pwt.project.project_type) }}</div>
       <div><strong>保密级别:</strong> {{ mapsecret(pwt.project.secret_level) }}</div>
       <div><strong>时间:</strong> {{ pwt.project.start_year }}{{ pwt.project.end_year ? '-' + pwt.project.end_year : ' 至今' }}</div>
