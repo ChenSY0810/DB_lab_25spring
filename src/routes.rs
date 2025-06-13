@@ -134,6 +134,13 @@ pub fn api_routes(pool: MySqlPool) -> impl Filter<Extract = impl warp::Reply, Er
     .and(with_db(pool.clone()))
     .and_then(change_password_handler);
 
+  let range_query = warp::path!("api" / "range-query")
+    .and(warp::post())
+    .and(warp::query::<models::UserName>())
+    .and(warp::body::json())
+    .and(with_db(pool.clone()))
+    .and_then(range_query_handler);
+
   let total_routes = insert_teacher
     .or(list_teacher)
     .or(list_user)
@@ -157,7 +164,8 @@ pub fn api_routes(pool: MySqlPool) -> impl Filter<Extract = impl warp::Reply, Er
     .or(update_course)
     .or(delete_course)
 
-    .or(change_password);
+    .or(change_password)
+    .or(range_query);
     
   total_routes
 }

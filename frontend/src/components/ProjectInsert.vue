@@ -80,6 +80,10 @@ const submit = async () => {
     alert("请填写完整项目信息。")
     return false
   }
+  
+  if (project.value.end_year === '') {
+    project.value.end_year = null
+  }
 
   const payload = {
     ...project.value,

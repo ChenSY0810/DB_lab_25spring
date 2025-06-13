@@ -113,7 +113,7 @@ const submit = async () => {
     teachers: teachers.value
   }
 
-console.log(JSON.stringify(payload, null, 2));
+  console.log(JSON.stringify(payload, null, 2));
 
   const res = await fetch('/api/papers', {
     method: 'POST',

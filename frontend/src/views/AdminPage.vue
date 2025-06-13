@@ -32,7 +32,7 @@ import LinkSection from '@/components/LinkSection.vue'
 import ProjectSection from '@/components/ProjectSection.vue'
 import PaperSection from '@/components/PaperSection.vue'
 import CourseSection from '@/components/CourseSection.vue'
-// import RangeQuerySection from '@/components/RangeQuerySection.vue'
+import RangeQuerySection from '@/components/RangeQuerySection.vue'
 
 import { ref } from 'vue'
 
@@ -57,7 +57,7 @@ const tabColorMap = {
   '项目': 'bg-yellow-50',
   '论文': 'bg-red-50',
   '课程': 'bg-purple-50',
-  '范围查询': 'bg-magenta-50'
+  '范围查询': 'bg-blue-50'
 }
 </script>
 

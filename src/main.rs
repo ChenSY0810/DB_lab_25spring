@@ -1,10 +1,11 @@
+#![recursion_limit = "256"]
 mod routes;
 mod handlers;
 mod db;
 mod models;
 mod utils;
 
-use warp::{filters::body::json, Filter};
+use warp::{ Filter};
 
 
 #[tokio::main]

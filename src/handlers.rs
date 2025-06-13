@@ -1,11 +1,13 @@
+use tokio::fs;
 use warp::http::StatusCode;
 use sqlx::MySqlPool;
 use uuid::Uuid;
-use warp::{reject::Reject};
-use serde;
 use bcrypt::{hash, verify, DEFAULT_COST};
-
-use crate::models::{self, ErrorMessage, ToErrorMessage};
+use std::fs::File;
+use std::path::PathBuf;
+use std::io::Write as IoWrite;
+use std::fmt::Write as FmtWrite;
+use crate::models::{self, ToErrorMessage};
 use crate::utils::*;
 
 
@@ -340,7 +342,7 @@ pub async fn project_read_handler (
         _ => ret_format(emsg, StatusCode::FORBIDDEN)
       }
     } else {
-      ret_format(emsg, StatusCode::FORBIDDEN)
+      ret_format(ret, StatusCode::OK)
     }
   } else {
     ret_format(ret, StatusCode::OK)
@@ -1098,17 +1100,249 @@ pub async fn course_delete_handler(
   }
 }
 
-
-pub async fn range_query_handler (
+pub async fn range_query_handler(
+  user_name: models::UserName,
+  query: models::RangeQuery,
   pool: MySqlPool,
 ) -> Result<impl warp::Reply, warp::Rejection> {
-  Ok(StatusCode::NOT_IMPLEMENTED)
-}
 
-pub async fn query_pdf_handler (
-  pool: MySqlPool,
-) -> Result<impl warp::Reply, warp::Rejection> {
-  Ok(StatusCode::NOT_IMPLEMENTED)
+  // 写入， typst编译， 发送
+
+  let pri = get_user_priv(&user_name.username, &pool).await;
+  let mut not_teacher = false;
+  let tid=  query.teacher_id;
+  let utid = match get_user_teacher_id(&user_name.username, &pool).await {
+    Some(a) => a,
+    None => {
+      if pri == 2 {
+        not_teacher = true;
+      }
+      "".to_string()
+    }
+  };
+  let start_year = match query.start_year {
+    Some(a) => a,
+    None => 0, 
+  };
+  let end_year = match query.end_year {
+    Some(a) => a,
+    None => 10000, // 这只是一个充分大的数
+  };
+
+
+  // teacher paper project course
+  let teacher = sqlx::query_as!(
+    models::Teacher,
+    r#"
+    SELECT *
+    FROM Teacher
+    WHERE teacher_id = ?
+    "#,
+    &tid
+  )
+  .fetch_one(&pool)
+  .await
+  .map_db_err()?;
+
+  let papers = sqlx::query_as!(
+    models::PaperR,
+    r#"
+    SELECT 
+      p.paper_name,
+      p.paper_src,
+      DATE_FORMAT(p.pub_year, '%Y') as pub_year,
+      p.paper_type,
+      p.paper_level,
+      pp.ranking,
+      pp.comm_auth
+    FROM Publication p
+    INNER JOIN PaperPub pp ON p.paper_id = pp.paper_id
+    WHERE pp.teacher_id = ?
+      AND YEAR(p.pub_year) >= ?
+      AND YEAR(p.pub_year) <= ?
+    "#,
+    &tid, start_year, end_year
+  )
+  .fetch_all(&pool)
+  .await
+  .map_db_err()?;
+
+  
+  let mut projects = sqlx::query_as!(
+    models::ProjectR,
+    r#"
+    SELECT 
+      p.project_id,
+      p.project_name,
+      p.project_src,
+      p.project_type,
+      p.start_year,
+      p.end_year,
+      p.secret_level,
+      pr.ranking,
+      pr.fund
+    FROM Project p
+    INNER JOIN ProjectResp pr ON p.project_id = pr.project_id
+    WHERE pr.teacher_id = ?
+      AND p.start_year <= ?
+      AND COALESCE(p.end_year, 100000) >= ?
+    "#,
+    &tid, start_year, end_year
+  )
+  .fetch_all(&pool)
+  .await
+  .map_db_err()?;
+
+  let courses = sqlx::query_as!(
+    models::CourseR,
+    r#"
+    SELECT 
+      c.course_name,
+      c.course_property,
+      ct.course_year,
+      ct.course_semester,
+      ct.resp_hour
+    FROM Course c
+    INNER JOIN ClassTeach ct ON c.course_id = ct.course_id
+    WHERE ct.teacher_id = ?
+      AND ct.course_year >= ?
+      AND ct.course_year <= ?
+    "#,
+    &tid, start_year, end_year
+  )
+  .fetch_all(&pool)
+  .await
+  .map_db_err()?;
+
+  // 写入： 在project 检查权限 只有admin和 参与者看得到
+  
+  let mut write_buffer = r#"#import "lib.typ": *"#.to_string();
+
+  let sy = match query.start_year {
+    Some(a) => a.to_string(),
+    None => "none".to_string(), 
+  };
+  let ey = match query.end_year {
+    Some(a) => a.to_string(),
+    None => "none".to_string(), // 这只是一个充分大的数
+  };
+
+  write!(write_buffer, "\n\n#show: resume_template( my_title(\"{}\", {}, {}) )\n",
+    teacher.teacher_name, sy, ey
+  ).unwrap();
+
+  write!(write_buffer, "== 基本信息\n\n#my_info(id: {}, sex: {}, title: {})\n\n",
+    i32::from_str_radix(&teacher.teacher_id, 16).unwrap(), teacher.teacher_sex, teacher.teacher_title
+  ).unwrap();
+  
+  if papers.len() != 0 {
+    write!(write_buffer, "== 科研\n\n").unwrap();
+  }
+
+  for paper in papers {
+    let comm = if paper.comm_auth == 0 { "false".to_string() } else { "true".to_string() };
+    write!(write_buffer, "#my_paper(name: \"{}\", year: {}, src: \"{}\", rank: {}, comm: {}, lvl: {}, ty: {} )\n\n",
+      paper.paper_name, paper.pub_year.unwrap(), paper.paper_src, paper.ranking, comm, paper.paper_level, paper.paper_type
+    ).unwrap();
+  }
+
+  // 权限检查，并删除无权限的
+
+  let mut i = 0;
+  while i < projects.len() {
+    if projects[i].secret_level == 2 && pri == 1 {
+      if not_teacher {
+        projects.remove(i);
+        continue;
+      }
+
+      let cnt = sqlx::query_as!(
+        models::Cnt,
+        r#"
+        SELECT COUNT(1) as count
+        FROM ProjectResp
+        WHERE teacher_id = ?
+        AND project_id = ?
+        "#,
+        &utid, projects[i].project_id
+      )
+      .fetch_one(&pool).await
+      .map_db_err()?;
+
+      if cnt.count == 0 {
+        projects.remove(i);
+        continue;
+      }
+    }
+    i += 1;
+  }
+
+  if projects.len() != 0 {
+    write!(write_buffer, "== 项目\n\n").unwrap();
+  }
+
+  for project in projects {
+    let ey = match project.end_year {
+      Some(i) => i.to_string(),
+      None => "none".to_string()
+    };
+    write!(write_buffer, "#my_project(name: \"{}\", start: {}, end: {}, rank: {}, fund: {}, src: \"{}\", secret_lvl: {}, ty: {})\n\n",
+      project.project_name, project.start_year, ey, project.ranking, project.fund, project.project_src, project.secret_level, project.project_type
+    ).unwrap();
+  }
+
+  if courses.len() != 0 {
+    write!(write_buffer, "== 课程\n\n").unwrap();
+  }
+
+  for course in courses {
+    write!(write_buffer, "#my_course(name: \"{}\", hour: {}, year: {}, semester: {})\n\n",
+      course.course_name, course.resp_hour, course.course_year, course.course_semester
+    ).unwrap();
+  }
+
+  let base = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+  let filepath = base.join("pdf/main.typ");
+  
+  // println!("{:?}", filepath);
+  let result = tokio::fs::write(filepath, write_buffer).await;
+  // println!("{}",write_buffer);
+
+  match result {
+    Ok(_) => {
+      use std::process::Command;
+      let output = Command::new("typst")
+        .arg("compile")
+        .arg("pdf/main.typ")
+        .arg("pdf/out.pdf")
+        .output()
+        .expect("failed to execute typst compile");
+
+      if !output.status.success() {
+        eprintln!("typst compile error: {}", String::from_utf8_lossy(&output.stderr));
+        return ret_format("PDF generation failed", StatusCode::INTERNAL_SERVER_ERROR); 
+      }
+
+      let pdf_bytes = match fs::read("pdf/out.pdf").await {
+        Ok(bytes) => bytes,
+        Err(e) => {
+          eprintln!("Failed to read PDF: {}", e);
+          return ret_format("Failed to read PDF.", StatusCode::INTERNAL_SERVER_ERROR);
+        }
+      };
+
+      let resp = warp::http::Response::builder()
+        .header(warp::http::header::CONTENT_TYPE, "application/pdf")
+        .header(warp::http::header::CONTENT_DISPOSITION, "attachment; filename=\"range_query.pdf\"")
+        .body(pdf_bytes).unwrap();
+
+      Ok(Box::new(resp))
+    },
+    Err(e) => {
+      ret_format(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR)
+    },
+  }
+    
 }
 
 pub async fn change_password_handler (

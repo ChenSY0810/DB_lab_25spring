@@ -215,3 +215,43 @@ pub struct UpdateCourse {
   pub old_name: String,
   pub new_course: InsertCourse,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct RangeQuery {
+  pub teacher_id: String,
+  pub start_year: Option<i32>,
+  pub end_year: Option<i32>,
+}
+
+#[derive(Debug)]
+pub struct PaperR {
+  pub paper_name: String,
+  pub paper_src: String,
+  pub pub_year: Option<String>,
+  pub paper_type: i32,
+  pub paper_level: i32,
+  pub ranking: i32,
+  pub comm_auth: i8,
+}
+
+#[derive(Debug)]
+pub struct ProjectR {
+  pub project_id: String,
+  pub project_name: String,
+  pub project_src: String,
+  pub project_type: i32,
+  pub start_year: i32,
+  pub end_year: Option<i32>,
+  pub secret_level: i32,
+  pub ranking: i32,
+  pub fund: f64,
+}
+
+#[derive(Debug)]
+pub struct CourseR {
+  pub course_name: String,
+  pub course_property: i32,
+  pub course_year: i32,
+  pub course_semester: i32,
+  pub resp_hour: i32,
+}
